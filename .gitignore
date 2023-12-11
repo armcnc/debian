@@ -8,3 +8,4 @@
 *.xz
 *.img.xz
 build
+debian_rootfs*
