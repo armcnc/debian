@@ -176,22 +176,6 @@ EOF
     rm -rf "${ROOTFS_BUILD_DIR}"/app/hobot_debs/
     rm -rf "${ROOTFS_BUILD_DIR}"/lib/aarch64-linux-gnu/dri/
 
-    cat <<-EOF > "${ROOTFS_BUILD_DIR}"/etc/apt/sources.list
-deb http://mirrors.ustc.edu.cn/debian/ bookworm main contrib non-free non-free-firmware
-deb-src http://mirrors.ustc.edu.cn/debian/ bookworm main contrib non-free non-free-firmware
-deb http://mirrors.ustc.edu.cn/debian/ sid main contrib non-free non-free-firmware
-EOF
-
-    chroot "${ROOTFS_BUILD_DIR}" /bin/bash -c "apt update -y"
-    chroot "${ROOTFS_BUILD_DIR}" /bin/bash -c "apt -t sid install python3.11"
-
-    cat <<-EOF > "${ROOTFS_BUILD_DIR}"/etc/apt/sources.list
-deb http://mirrors.ustc.edu.cn/debian/ bookworm main contrib non-free non-free-firmware
-deb-src http://mirrors.ustc.edu.cn/debian/ bookworm main contrib non-free non-free-firmware
-EOF
-
-    chroot "${ROOTFS_BUILD_DIR}" /bin/bash -c "apt update -y"
-
     cat <<'EOF' > "${ROOTFS_BUILD_DIR}"/boot/boot.cmd
 # Print boot source
 echo "Boot script loaded from devtype:${devtype} devnum:${devnum} devplist:${devplist}"

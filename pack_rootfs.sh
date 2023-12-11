@@ -105,6 +105,22 @@ EOF
     chroot "${ROOTFS_DIR}" /bin/bash -c "systemctl disable hostapd dnsmasq NetworkManager-wait-online.service"
     chroot "${ROOTFS_DIR}" /bin/bash -c "systemctl enable lightdm"
 
+    cat <<-EOF > "${ROOTFS_BUILD_DIR}"/etc/apt/sources.list
+deb http://mirrors.ustc.edu.cn/debian/ bookworm main contrib non-free non-free-firmware
+deb-src http://mirrors.ustc.edu.cn/debian/ bookworm main contrib non-free non-free-firmware
+deb http://mirrors.ustc.edu.cn/debian/ sid main contrib non-free non-free-firmware
+EOF
+
+    chroot "${ROOTFS_BUILD_DIR}" /bin/bash -c "apt update -y"
+    chroot "${ROOTFS_BUILD_DIR}" /bin/bash -c "apt -t sid install python3.11"
+
+    cat <<-EOF > "${ROOTFS_BUILD_DIR}"/etc/apt/sources.list
+deb http://mirrors.ustc.edu.cn/debian/ bookworm main contrib non-free non-free-firmware
+deb-src http://mirrors.ustc.edu.cn/debian/ bookworm main contrib non-free non-free-firmware
+EOF
+
+    chroot "${ROOTFS_BUILD_DIR}" /bin/bash -c "apt update -y"
+
     chroot "${ROOTFS_BUILD_DIR}" /bin/bash -c "wget https://cdn.geekros.com/armcnc/libs/openssl-1.1.1w.tar.gz"
     chroot "${ROOTFS_BUILD_DIR}" /bin/bash -c "tar xvf openssl-1.1.1w.tar.gz"
     chroot "${ROOTFS_BUILD_DIR}" /bin/bash -c "cd openssl-1.1.1w"
