@@ -7,5 +7,4 @@
 *.gz
 *.xz
 *.img.xz
-*.deb
 build
