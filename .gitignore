@@ -9,6 +9,3 @@
 *.img.xz
 *.deb
 build
-!deb_packages/hobot-boot_2.0.2-01_arm64.deb
-!deb_packages/hobot-kernel-headers_2.0.0-01_arm64.deb
-!deb_packages/hobot-bpu-drivers_2.0.0-01_arm64.deb
