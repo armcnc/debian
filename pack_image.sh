@@ -213,7 +213,7 @@ fi
 EOF
 
     chroot "${ROOTFS_BUILD_DIR}" /bin/bash -c "apt update -y"
-    chroot "${ROOTFS_BUILD_DIR}" /bin/bash -c "apt install tree tros hobot-models-basic"
+    chroot "${ROOTFS_BUILD_DIR}" /bin/bash -c "apt install tree"
     chroot "${ROOTFS_BUILD_DIR}" /bin/bash -c "rm -rf /etc/apt/sources.list.d/*"
     chroot "${ROOTFS_BUILD_DIR}" /bin/bash -c "apt install --reinstall libgl1-mesa-glx libgl1-mesa-dri xserver-xorg-core"
     chroot "${ROOTFS_BUILD_DIR}" /bin/bash -c "apt update -y"
