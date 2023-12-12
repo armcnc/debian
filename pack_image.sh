@@ -176,13 +176,6 @@ EOF
     rm -rf "${ROOTFS_BUILD_DIR}"/app/hobot_debs/
     rm -rf "${ROOTFS_BUILD_DIR}"/lib/aarch64-linux-gnu/dri/
 
-    cat <<-EOF > "${ROOTFS_BUILD_DIR}"/etc/apt/sources.list.d/sunrise.list
-deb [signed-by=/usr/share/keyrings/sunrise.gpg] http://sunrise.horizon.cc/ubuntu-rdk/ focal main
-EOF
-
-    chroot "${ROOTFS_BUILD_DIR}" /bin/bash -c "apt update -y"
-    chroot "${ROOTFS_BUILD_DIR}" /bin/bash -c "apt install tree hobot-models-basic tros"
-
     cat <<'EOF' > "${ROOTFS_BUILD_DIR}"/boot/boot.cmd
 # Print boot source
 echo "Boot script loaded from devtype:${devtype} devnum:${devnum} devplist:${devplist}"
@@ -220,7 +213,7 @@ fi
 EOF
 
     chroot "${ROOTFS_BUILD_DIR}" /bin/bash -c "rm -rf /etc/apt/sources.list.d/*"
-    chroot "${ROOTFS_BUILD_DIR}" /bin/bash -c "apt install --reinstall libgl1-mesa-glx libgl1-mesa-dri xserver-xorg-core"
+    chroot "${ROOTFS_BUILD_DIR}" /bin/bash -c "apt install --reinstall tree libgl1-mesa-glx libgl1-mesa-dri xserver-xorg-core"
     chroot "${ROOTFS_BUILD_DIR}" /bin/bash -c "apt update -y"
     chroot "${ROOTFS_BUILD_DIR}" /bin/bash -c "apt upgrade -y"
     chroot "${ROOTFS_BUILD_DIR}" /bin/bash -c "apt autoremove -y"
