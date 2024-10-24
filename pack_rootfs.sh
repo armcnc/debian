@@ -83,6 +83,50 @@ EOF
 
     chroot "${ROOTFS_DIR}" /bin/bash -c "systemctl disable hostapd dnsmasq NetworkManager-wait-online.service"
     chroot "${ROOTFS_DIR}" /bin/bash -c "systemctl enable lightdm"
+
+    cat <<-EOF > "${ROOTFS_DIR}"/etc/apt/sources.list
+deb http://mirrors.ustc.edu.cn/debian/ bookworm main contrib non-free non-free-firmware
+deb-src http://mirrors.ustc.edu.cn/debian/ bookworm main contrib non-free non-free-firmware
+deb http://mirrors.ustc.edu.cn/debian/ sid main contrib non-free non-free-firmware
+EOF
+
+    chroot "${ROOTFS_DIR}" /bin/bash -c "apt update -y"
+    chroot "${ROOTFS_DIR}" /bin/bash -c "apt -t sid install -y python3.11"
+
+    cat <<-EOF > "${ROOTFS_DIR}"/etc/apt/sources.list
+deb http://mirrors.ustc.edu.cn/debian/ bookworm main contrib non-free non-free-firmware
+deb-src http://mirrors.ustc.edu.cn/debian/ bookworm main contrib non-free non-free-firmware
+EOF
+
+    chroot "${ROOTFS_DIR}" /bin/bash -c "apt update -y"
+
+    chroot "${ROOTFS_DIR}" /bin/bash -c "wget https://cdn.geekros.com/armcnc/libs/openssl-1.1.1w.tar.gz"
+    chroot "${ROOTFS_DIR}" /bin/bash -c "tar xvf openssl-1.1.1w.tar.gz"
+    chroot "${ROOTFS_DIR}" /bin/bash -c "cd openssl-1.1.1w && ./config && make && make install && cd ../ && rm -rf openssl-1.1.1*"
+
+    chroot "${ROOTFS_DIR}" /bin/bash -c "rm -rf /var/lib/apt/lists/mirrors*"
+    chroot "${ROOTFS_DIR}" /bin/bash -c "apt update -y"
+    chroot "${ROOTFS_DIR}" /bin/bash -c "apt upgrade -y"
+    chroot "${ROOTFS_DIR}" /bin/bash -c "apt autoremove -y"
+    chroot "${ROOTFS_DIR}" /bin/bash -c "apt clean"
+    chroot "${ROOTFS_DIR}" /bin/bash -c "truncate -s 0 /var/log/*.log"
+    chroot "${ROOTFS_DIR}" /bin/bash -c "rm -rf /tmp/*"
+    chroot "${ROOTFS_DIR}" /bin/bash -c "history -c && history -w"
+
+    # 卸载文件系统和设备节点
+    umount "${ROOTFS_DIR}/dev/pts"
+    umount "${ROOTFS_DIR}/dev"
+    umount "${ROOTFS_DIR}/proc"
+    umount "${ROOTFS_DIR}/sys"
+
+    # shellcheck disable=SC2155
+    # shellcheck disable=SC2006
+    local du_size=`du -sh "${ROOTFS_DIR}" 2> /dev/null |awk '{print $1}'`
+    echo "DIR_DU_SIZE ${du_size%%M}" >> "${TAR_FILE}".info
+
+    compress_base_root
+
+    echo "Make Debian rootfs successfully"
 }
 
 compress_base_root() {
