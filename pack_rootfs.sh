@@ -37,7 +37,7 @@ get_package_list()
 }
 
 # shellcheck disable=SC2034
-ADD_PACKAGE_LIST="$(get_package_list "base") $(get_package_list "server") $(get_package_list "desktop") "
+ADD_PACKAGE_LIST="${DEBOOTSTRAP_LIST} $(get_package_list "base") $(get_package_list "server") $(get_package_list "desktop") "
 
 make_base_root() {
     if [ ! -d debian_rootfs ]; then
@@ -51,6 +51,38 @@ make_base_root() {
     fi
 
     # 挂载文件系统和设备节点
+    mount -t proc chproc "${ROOTFS_DIR}"/proc
+    mount -t sysfs chsys "${ROOTFS_DIR}"/sys
+    mount -t devtmpfs chdev "${ROOTFS_DIR}"/dev || mount --bind /dev "${ROOTFS_DIR}"/dev
+    mount -t devpts chpts "${ROOTFS_DIR}"/dev/pts
+
+    chroot "${ROOTFS_DIR}" /bin/bash -c 'echo "resolvconf resolvconf/linkify-resolvconf boolean false" | debconf-set-selections'
+
+    cat <<-EOF > "${ROOTFS_DIR}"/etc/apt/sources.list
+deb http://mirrors.ustc.edu.cn/debian/ bookworm main contrib non-free non-free-firmware
+deb-src http://mirrors.ustc.edu.cn/debian/ bookworm main contrib non-free non-free-firmware
+EOF
+
+    eval 'LC_ALL=C LANG=C chroot ${ROOTFS_DIR} /bin/bash -c "apt -q -y update"'
+    eval 'LC_ALL=C LANG=C chroot ${ROOTFS_DIR} /bin/bash -c "apt -q -y upgrade"'
+    eval 'LC_ALL=C LANG=C chroot ${ROOTFS_DIR} /bin/bash -c "DEBIAN_FRONTEND=noninteractive apt -y -q install $ADD_PACKAGE_LIST"'
+
+    chroot "${ROOTFS_DIR}" /bin/bash -c "dpkg --get-selections" | grep -v deinstall | awk '{print $1}' | cut -f1 -d':' > "${TAR_FILE}".info
+
+    chroot "${ROOTFS_DIR}" /bin/bash -c "pip3 config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple"
+    chroot "${ROOTFS_DIR}" /bin/bash -c "pip3 config set install.trusted-host https://pypi.tuna.tsinghua.edu.cn"
+
+    if [ -f "${ROOTFS_DIR}"/etc/locale.gen ];then
+        sed -i "s/^# $DEST_LANG/$DEST_LANG/" "${ROOTFS_DIR}"/etc/locale.gen
+        sed -i "s/^# $DEST_LANG_CN/$DEST_LANG_CN/" "${ROOTFS_DIR}"/etc/locale.gen
+    fi
+
+    eval 'LC_ALL=C LANG=C chroot $ROOTFS_DIR /bin/bash -c "locale-gen $DEST_LANG"'
+    eval 'LC_ALL=C LANG=C chroot $ROOTFS_DIR /bin/bash -c "locale-gen $DEST_LANG_CN"'
+    eval 'LC_ALL=C LANG=C chroot $ROOTFS_DIR /bin/bash -c "update-locale LANG=$DEST_LANG LANGUAGE=$DEST_LANG"'
+
+    chroot "${ROOTFS_DIR}" /bin/bash -c "systemctl disable hostapd dnsmasq NetworkManager-wait-online.service"
+    chroot "${ROOTFS_DIR}" /bin/bash -c "systemctl enable lightdm"
 }
 
 compress_base_root() {
