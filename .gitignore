@@ -3,3 +3,10 @@
 .git
 .vscode
 .DS_Store
+*.img
+*.info
+*.gz
+*.xz
+*.img.xz
+build
+debian_rootfs*
