@@ -21,23 +21,41 @@ TAR_FILE=${LOCAL_DIR}/debian_rootfs.tar.gz
 DEST_LANG="en_US.UTF-8"
 # shellcheck disable=SC2034
 DEST_LANG_CN="zh_CN.UTF-8"
-
+DEBOOTSTRAP_LIST="systemd sudo git vim curl wget lsb-release locales apt-utils openssh-server ssh dbus init \
+strace kmod init udev bash-completion netbase network-manager \
+ifupdown ethtool net-tools iputils-ping hostapd lightdm dnsmasq ntp chromium "
+BASE_PACKAGE_LIST="file openssh-server ssh bsdmainutils whiptail device-tree-compiler \
+bzip2 htop rsyslog parted python3 python3-pip console-setup fake-hwclock \
+ncurses-term gcc g++ toilet sysfsutils rsyslog tzdata u-boot-tools \
+libcjson1 libcjson-dev db-util diffutils e2fsprogs libc6 xterm \
+libcrypt1 libdevmapper1.02.1 libedit2 libgcc-s1-arm64-cross libgcrypt20 libgpg-error0 \
+libkcapi1 libmenu-cache3 libnss-db libpcap0.8 libpcre3 \
+libvorbis0a libzmq5 lvm2 makedev mtd-utils ncurses-term ncurses-base nettle-bin \
+nfs-common openssl perl-base perl tftpd-hpa tftp-hpa tzdata watchdog \
+wpasupplicant alsa-utils base-files cryptsetup diffutils dosfstools \
+dropbear e2fsprogs ethtool ffmpeg i2c-tools iperf3 \
+libaio1 libasound2 libattr1 \
+libblkid1 libc6 libc6-dev libcap2 libcom-err2 libcrypt-dev libdbus-1-3 libexpat1 libext2fs2 \
+libgcc1 libgdbm-compat4 libgdbm-dev libgdbm6 libgmp10 libgnutls30 libidn2-0 libkmod2 \
+liblzo2-2 libmount1 libncurses5 libncursesw5 libnl-3-200 libnl-genl-3-200 libogg0 libpopt0 \
+libreadline8 libsamplerate0 libsndfile1 libss2 libstdc++6 \
+libtinfo5 libtirpc3 libudev1 libunistring2 libusb-1.0-0 libuuid1 libwrap0 libx11-6 \
+libxau6 libxcb1 libxdmcp6 libxext6 libxv1 libz-dev libz1 lrzsz lvm2 mtd-utils net-tools \
+netbase openssh-sftp-server openssl rpcbind screen sysstat tcpdump libgl1-mesa-glx libgl1-mesa-dri xserver-xorg-core \
+thin-provisioning-tools trace-cmd tzdata usbutils watchdog libturbojpeg0-dev \
+base-passwd libasound2-dev libavcodec-dev libavformat-dev libavutil-dev libcrypto++-dev \
+libjsoncpp-dev libssl-dev libswresample-dev libzmq3-dev perl sed \
+symlinks libunwind8 libperl-dev ifmetric v4l-utils python3-dev \
+build-essential libbullet-dev libasio-dev libtinyxml2-dev iotop htop iw wireless-tools \
+bluetooth bluez blueman sqlite3 libsqlite3-dev libeigen3-dev liblog4cxx-dev libcurl4-openssl-dev \
+libboost-dev libboost-date-time-dev libboost-thread-dev \
+distro-info python3-click python3-colorama "
+DESKTOP_PACKAGE_LIST="xfce4 xfce4-goodies xserver-xorg-video-fbdev policykit-1-gnome notification-daemon \
+tightvncserver network-manager-gnome xfce4-terminal tightvncserver \
+smplayer pavucontrol pulseaudio \
+libvulkan1 mesa-vulkan-drivers libtinyxml-dev fonts-wqy-zenhei "
 # shellcheck disable=SC2034
-DEBOOTSTRAP_LIST="systemd sudo locales apt-utils init dbus kmod udev bash-completion ntp libjsoncpp-dev libjson-c-dev rapidjson-dev libgpiod2 libgpiod-dev libdrm-dev libevent-dev kcapi-tools libkcapi-dev libminizip-dev can-utils"
-
-get_package_list()
-{
-    package_list_file="${LOCAL_DIR}/package/debian-${1}-arm64-packages"
-    if [ ! -f "${package_list_file}" ]; then
-        echo "ERROR: package list file - ${package_list_file} not found" > /dev/stderr
-        exit 1
-    fi
-    PACKAGE_LIST=$(sed ':a;N;$!ba;s/\n/ /g' < "${package_list_file}")
-    echo "${PACKAGE_LIST}"
-}
-
-# shellcheck disable=SC2034
-ADD_PACKAGE_LIST="${DEBOOTSTRAP_LIST} $(get_package_list "base") $(get_package_list "server") $(get_package_list "desktop") "
+ADD_PACKAGE_LIST="${DEBOOTSTRAP_LIST} ${BASE_PACKAGE_LIST} ${DESKTOP_PACKAGE_LIST} "
 
 make_base_root() {
     if [ ! -d debian_rootfs ]; then
