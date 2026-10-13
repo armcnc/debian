@@ -150,3 +150,34 @@ EOF
 
 # Reboot the system to apply changes and use the debian user login
 sudo reboot
+
+# Remove the custom kernel packages installed earlier
+sudo apt remove linux-headers-6.1.99-rk3588 linux-image-6.1.99-rk3588
+
+# Install the new real-time kernel packages
+sudo dpkg -i linux-image-6.1.99-rt36-rk3588_6.1.99-rt36-rk3588-9_arm64.deb linux-headers-6.1.99-rt36-rk3588_6.1.99-rt36-rk3588-9_arm64.deb
+
+# Create the directory ~/.armcnc if it does not exist
+sudo mkdir -p ~/.armcnc
+
+# Save the MAC addresses of all network interfaces to ~/.armcnc/mac-addresses
+ifconfig -a | awk '
+/^[^[:space:]]/ { iface=$1; sub(/:$/, "", iface) }
+$1 == "ether" { print iface, $2 }
+' | sudo tee ~/.armcnc/mac-addresses
+
+# Extract the MAC address of the eth0 interface from ~/.armcnc/mac-addresses and store it in the variable mac_addresses
+mac_addresses=$(awk '$1 == "eth0" { print $2; exit }' /etc/armcnc/mac-addresses)
+echo "$mac_addresses"
+
+# Update the kernel boot parameters in /boot/uEnv/uEnvLubanCat5-V2.txt to isolate CPU cores 6 and 7 for real-time tasks
+sudo sed -i -e 's/isolcpus=7\b/isolcpus=6,7/g' -e 's/nohz_full=7\b/nohz_full=6,7/g' -e 's/rcu_nocbs=7\b/rcu_nocbs=6,7/g' /boot/uEnv/uEnvLubanCat5-V2.txt
+grep '^cmdline=' /boot/uEnv/uEnvLubanCat5-V2.txt
+
+# Reboot the system to apply changes and use the debian user login
+sudo reboot
+
+# Clear the command history and remove the .bash_history file for security purposes, then exit the script
+history -c && history -w && rm -rf .bash_history && exit
+# OR
+history -c && history -w && rm -rf .bash_history && sudo reboot
