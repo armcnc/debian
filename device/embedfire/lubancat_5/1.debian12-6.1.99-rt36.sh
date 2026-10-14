@@ -108,6 +108,7 @@ sudo tee /etc/update-motd.d/00-header > /dev/null <<'EOF'
 
 [ -r /etc/lsb-release ] && . /etc/lsb-release
 
+printf '\n\033[90m'
 cat <<'BANNER'
      _      ____    __  __    ____   _   _    ____
     / \    |  _ \  |  \/  |  / ___| | \ | |  / ___|
@@ -116,6 +117,7 @@ cat <<'BANNER'
  /_/   \_\ |_| \_\ |_|  |_|  \____| |_| \_|  \____|
 
 BANNER
+printf '\033[0m\n'
 
 if [ -z "$DISTRIB_DESCRIPTION" ] && [ -x /usr/bin/lsb_release ]; then
     DISTRIB_DESCRIPTION=$(lsb_release -s -d)
@@ -167,7 +169,7 @@ $1 == "ether" { print iface, $2 }
 ' | sudo tee ~/.armcnc/mac-addresses
 
 # Extract the MAC address of the eth0 interface from ~/.armcnc/mac-addresses and store it in the variable mac_addresses
-mac_addresses=$(awk '$1 == "eth0" { print $2; exit }' /etc/armcnc/mac-addresses)
+mac_addresses=$(awk '$1 == "eth0" { print $2; exit }' ~/.armcnc/mac-addresses)
 echo "$mac_addresses"
 
 # Update the kernel boot parameters in /boot/uEnv/uEnvLubanCat5-V2.txt to isolate CPU cores 6 and 7 for real-time tasks
@@ -181,3 +183,53 @@ sudo reboot
 history -c && history -w && rm -rf .bash_history && exit
 # OR
 history -c && history -w && rm -rf .bash_history && sudo reboot
+
+# Save the MAC addresses of all network interfaces to ~/.armcnc/mac-addresses, including EtherCAT interfaces if present
+{
+    for dev in /sys/class/net/*; do
+        [ -r "$dev/type" ] || continue
+        [ "$(cat "$dev/type")" = "1" ] || continue
+        printf '%s %s\n' "${dev##*/}" "$(cat "$dev/address")"
+    done
+
+    if command -v ethercat >/dev/null 2>&1; then
+        sudo ethercat master 2>/dev/null | awk '
+            $1 == "Main:" || $1 == "Backup:" {
+                if ($2 ~ /^([[:xdigit:]]{2}:){5}[[:xdigit:]]{2}$/)
+                    print "ethercat", tolower($2)
+            }
+        '
+    fi
+
+    for node in /proc/device-tree/ethernet@*; do
+        [ -r "$node/compatible" ] || continue
+        tr '\0' '\n' < "$node/compatible" | grep -q ethercat || continue
+
+        for prop in mac-address local-mac-address; do
+            [ -r "$node/$prop" ] || continue
+
+            mac=$(od -An -v -tx1 "$node/$prop" | awk '
+                {
+                    for (i = 1; i <= NF; i++) bytes[++n] = $i
+                }
+                END {
+                    if (n == 6)
+                        printf "%s:%s:%s:%s:%s:%s",
+                            bytes[1], bytes[2], bytes[3],
+                            bytes[4], bytes[5], bytes[6]
+                }
+            ')
+
+            case "$mac" in
+                ""|00:00:00:00:00:00|ff:ff:ff:ff:ff:ff) continue ;;
+            esac
+
+            printf 'ethercat %s\n' "$mac"
+            break
+        done
+    done
+} | awk '!seen[tolower($2)]++' | sudo tee ~/.armcnc/mac-addresses
+
+# Extract the MAC address of the EtherCAT interface from ~/.armcnc/mac-addresses and store it in the variable ethercat_mac_addresses
+ethercat_mac_addresses=$(awk '$1 == "ethercat" { print $2; exit }' ~/.armcnc/mac-addresses)
+echo "$ethercat_mac_addresses"
