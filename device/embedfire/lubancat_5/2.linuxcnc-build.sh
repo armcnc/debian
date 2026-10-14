@@ -39,7 +39,7 @@ git clone --branch v2.9.10 https://gh-proxy.com/https://github.com/LinuxCNC/linu
 # OR
 git clone --branch v2.9.10 https://ghclone.com/https://github.com/LinuxCNC/linuxcnc.git linuxcnc
 
-# Build LinuxCNC from source
+# In the linuxcnc directory
 cd linuxcnc
 
 # Backup the current commit hash to a file for reference
@@ -55,3 +55,29 @@ sudo apt-mark hold xserver-common
 
 # Install build dependencies for LinuxCNC
 sudo apt-get build-dep .
+
+# In the src directory of the linuxcnc repository
+cd src
+
+# Run the autogen.sh script to generate the configure script and prepare the build environment
+./autogen.sh
+
+# Configure the build environment for LinuxCNC with real-time support in user space
+./configure --with-realtime=uspace
+
+# Build LinuxCNC using 4 parallel jobs to speed up the compilation process
+make -j4
+
+# Set the setuid bit on the LinuxCNC binary to allow it to run with elevated privileges
+sudo make setuid
+
+# In the linuxcnc directory
+cd ~/linuxcnc
+
+# Source the rip-environment script to set up the environment variables for building the Debian package
+source scripts/rip-environment
+
+# CPU frequency scaling: Set the CPU governor to "performance" for CPUs 6 and 7 to ensure consistent performance during real-time operations
+for cpu in 6 7; do
+    echo performance | sudo tee /sys/devices/system/cpu/cpu${cpu}/cpufreq/scaling_governor
+done

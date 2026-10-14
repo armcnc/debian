@@ -179,11 +179,6 @@ grep '^cmdline=' /boot/uEnv/uEnvLubanCat5-V2.txt
 # Reboot the system to apply changes and use the debian user login
 sudo reboot
 
-# Clear the command history and remove the .bash_history file for security purposes, then exit the script
-history -c && history -w && rm -rf .bash_history && exit
-# OR
-history -c && history -w && rm -rf .bash_history && sudo reboot
-
 # Save the MAC addresses of all network interfaces to ~/.armcnc/mac-addresses, including EtherCAT interfaces if present
 {
     for dev in /sys/class/net/*; do
@@ -233,3 +228,84 @@ history -c && history -w && rm -rf .bash_history && sudo reboot
 # Extract the MAC address of the EtherCAT interface from ~/.armcnc/mac-addresses and store it in the variable ethercat_mac_addresses
 ethercat_mac_addresses=$(awk '$1 == "ethercat" { print $2; exit }' ~/.armcnc/mac-addresses)
 echo "$ethercat_mac_addresses"
+
+# Get the process ID of the gnome-shell process for the current user and store it in the variable shell_pid
+shell_pid=$(pgrep -u "$(id -u)" -x gnome-shell | head -n 1)
+
+# Get the DBUS_SESSION_BUS_ADDRESS environment variable for the current shell process and store it in the variable desktop_bus
+desktop_bus=$(sudo cat "/proc/$shell_pid/environ" \
+    | tr '\0' '\n' \
+    | sed -n 's/^DBUS_SESSION_BUS_ADDRESS=//p')
+
+# Export the DBUS_SESSION_BUS_ADDRESS environment variable for the current shell process to ensure that GUI applications can communicate with the D-Bus session bus
+export DBUS_SESSION_BUS_ADDRESS="$desktop_bus"
+
+# Create the directory ~/.local/share/gnome-shell/extensions/no-overview@armcnc if it does not exist
+mkdir -p ~/.local/share/gnome-shell/extensions/no-overview@armcnc
+
+# Create the metadata.json file for the no-overview@armcnc GNOME Shell extension to disable the overview at login
+cat > ~/.local/share/gnome-shell/extensions/no-overview@armcnc/metadata.json <<'EOF'
+{
+  "uuid": "no-overview@armcnc",
+  "name": "Start on Desktop",
+  "description": "Disable the overview at login",
+  "shell-version": ["43"],
+  "version": 1
+}
+EOF
+
+# Create the extension.js file for the no-overview@armcnc GNOME Shell extension to implement the functionality of disabling the overview at login
+cat > ~/.local/share/gnome-shell/extensions/no-overview@armcnc/extension.js <<'EOF'
+const Main = imports.ui.main;
+const GLib = imports.gi.GLib;
+
+let startupId = 0;
+let timeoutId = 0;
+let previousValue;
+
+function init() {}
+
+function hideOverview() {
+    timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
+        Main.overview.hide();
+        timeoutId = 0;
+        return GLib.SOURCE_REMOVE;
+    });
+}
+
+function enable() {
+    previousValue = Main.layoutManager.startInOverview;
+    Main.layoutManager.startInOverview = false;
+
+    if (Main.layoutManager._startingUp) {
+        startupId = Main.layoutManager.connect('startup-complete', () => {
+            Main.layoutManager.disconnect(startupId);
+            startupId = 0;
+            hideOverview();
+        });
+    } else {
+        hideOverview();
+    }
+}
+
+function disable() {
+    if (startupId) {
+        Main.layoutManager.disconnect(startupId);
+        startupId = 0;
+    }
+    if (timeoutId) {
+        GLib.source_remove(timeoutId);
+        timeoutId = 0;
+    }
+    Main.layoutManager.startInOverview = previousValue;
+}
+EOF
+
+# Enable the no-overview@armcnc GNOME Shell extension to disable the overview at login
+gsettings set org.gnome.shell disable-user-extensions false
+gsettings set org.gnome.shell enabled-extensions "['no-overview@armcnc']"
+
+# Clear the command history and remove the .bash_history file for security purposes, then exit the script
+history -c && history -w && rm -rf .bash_history && exit
+# OR
+history -c && history -w && rm -rf .bash_history && sudo reboot
