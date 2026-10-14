@@ -233,6 +233,21 @@ sudo reboot
 ethercat_mac_addresses=$(awk '$1 == "ethercat" { print $2; exit }' ~/.armcnc/mac-addresses)
 echo "$ethercat_mac_addresses"
 
+# Download ethercat_igh and install it
+wget -O https://mirrors.armcnc.org/install/embedfire/lubancat_5/ethercat_igh.zip
+unzip ethercat_igh.zip
+cd ethercat_igh
+cp -fv lib/libethercat.* /usr/lib/
+cp -fv bin/ethercat /usr/bin/
+
+# Create the necessary directories for EtherCAT kernel modules and copy the compiled kernel modules to the appropriate locations
+sudo mkdir -p /lib/modules/$(uname -r)/ethercat/master
+sudo mkdir -p /lib/modules/$(uname -r)/ethercat/devices
+sudo cp -fv ec_master.ko /lib/modules/$(uname -r)/ethercat/master/
+sudo cp -fv ec_stmmac.ko /lib/modules/$(uname -r)/ethercat/devices/
+sudo chmod +x /lib/modules/$(uname -r)/ethercat/master/ec_master.ko
+sudo chmod +x /lib/modules/$(uname -r)/ethercat/devices/ec_stmmac.ko
+
 # Get the process ID of the gnome-shell process for the current user and store it in the variable shell_pid
 shell_pid=$(pgrep -u "$(id -u)" -x gnome-shell | head -n 1)
 
