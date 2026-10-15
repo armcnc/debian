@@ -10,6 +10,8 @@
 
 Select supported development boards and devices from below
 
+- [Embedfire Lubancat 5](device/embedfire/lubancat_5/)
+
 ## Team
 
 ARMCNC https://www.armcnc.org
